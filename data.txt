@@ -1,0 +1,198 @@
+Ora 1:
+Foto: 0
+Eolian: 698
+Hidro: 1289
+Nuclear: 1330 MW
+Consum: 5598
+Pret [let/MW]: 693
+
+Ora 2:
+Foto: 0
+Eolian: 714
+Hidro: 1358
+Nuclear: 1330 MW
+Consum: 5520
+Pret [let/MW]: 602
+
+Ora 3:
+Foto: 0
+Eolian: 953
+Hidro: 1318
+Nuclear: 1330 MW
+Consum: 5568
+Pret [let/MW]: 616
+
+Ora 4:
+Foto: 0
+Eolian: 1058
+Hidro: 1286
+Nuclear: 1330 MW
+Consum: 5474
+Pret [let/MW]: 622
+
+Ora 5:
+Foto: 0
+Eolian: 1200
+Hidro: 1361
+Nuclear: 1330 MW
+Consum: 5684
+Pret [let/MW]: 662
+
+Ora 6:
+Foto: 0
+Eolian: 1230
+Hidro: 1327
+Nuclear: 1330 MW
+Consum: 5968
+Pret [let/MW]: 738
+
+Ora 7:
+Foto: 10
+Eolian: 1204
+Hidro: 1615
+Nuclear: 1330 MW
+Consum: 6404
+Pret [let/MW]: 667
+
+Ora 8:
+Foto: 180
+Eolian: 1037
+Hidro: 2067
+Nuclear: 1330 MW
+Consum: 7115
+Pret [let/MW]: 550
+
+Ora 9:
+Foto: 457
+Eolian: 1001
+Hidro: 2117
+Nuclear: 1330 MW
+Consum: 7262
+Pret [let/MW]: 206
+
+Ora 10:
+Foto: 794
+Eolian: 1053
+Hidro: 2032
+Nuclear: 1330 MW
+Consum: 7106
+Pret [let/MW]: 84
+
+Ora 11:
+Foto: 957
+Eolian: 856
+Hidro: 1613
+Nuclear: 1330 MW
+Consum: 6646
+Pret [let/MW]: 126
+
+Ora 12:
+Foto: 919
+Eolian: 769
+Hidro: 1767
+Nuclear: 1330 MW
+Consum: 6718
+Pret [let/MW]: 146
+
+Ora 13:
+Foto: 1037
+Eolian: 848
+Hidro: 1528
+Nuclear: 1330 MW
+Consum: 6534
+Pret [let/MW]: 153
+
+Ora 14:
+Foto: 969
+Eolian: 1150
+Hidro: 1255
+Nuclear: 1330 MW
+Consum: 6432
+Pret [let/MW]: 191
+
+Ora 15:
+Foto: 1562
+Eolian: 1319
+Hidro: 1060
+Nuclear: 1330 MW
+Consum: 5598
+Pret [let/MW]: 247
+
+Ora 16:
+Foto: 1048
+Eolian: 1211
+Hidro: 1240
+Nuclear: 1330 MW
+Consum: 5961
+Pret [let/MW]: 381
+
+Ora 17:
+Foto: 500
+Eolian: 1024
+Hidro: 1339
+Nuclear: 1330 MW
+Consum: 6544
+Pret [let/MW]: 572
+
+Ora 18:
+Foto: 113
+Eolian: 769
+Hidro: 1711
+Nuclear: 1330 MW
+Consum: 7073
+Pret [let/MW]: 727
+
+Ora 19:
+Foto: 0
+Eolian: 594
+Hidro: 2167
+Nuclear: 1330 MW
+Consum: 7677
+Pret [let/MW]: 831
+
+Ora 20:
+Foto: 0
+Eolian: 602
+Hidro: 2213
+Nuclear: 1330 MW
+Consum: 7735
+Pret [let/MW]: 1006
+
+Ora 21:
+Foto: 0
+Eolian: 593 
+Hidro: 2132
+Nuclear: 1330 MW
+Consum: 7419
+Pret [let/MW]: 797
+
+Ora 22:
+Foto: 0
+Eolian: 685 
+Hidro: 1975
+Nuclear: 1330 MW
+Consum: 6988
+Pret [let/MW]: 703
+
+Ora 23:
+Foto: 0
+Eolian: 627 
+Hidro: 1711
+Nuclear: 1330 MW
+Consum: 6337
+Pret [let/MW]: 754
+
+Ora 24:
+Foto: 0
+Eolian: 651 
+Hidro: 1857
+Nuclear: 1330 MW
+Consum: 5862
+Pret [let/MW]: 802
+
+
+Perioada 18-19 martie 2026 - Transelectrica SENGrafic
+Pentru pret - OPCOM (aceeasi perioada)
+
+
+

@@ -6,7 +6,7 @@ import matplotlib.patches as mpatches
 from scipy.interpolate import interp1d
 
 # =========================================================
-# DATE REALE TRANSELECTRICA + OPCOM
+# REAL DATA FROM TRANSELECTRICA + OPCOM
 # =========================================================
 
 pret_ora = np.array([
@@ -42,13 +42,13 @@ foto_ora = np.tile(foto_ora, 2)
 eolian_ora = np.tile(eolian_ora, 2)
 
 # =========================================================
-# SCENARIU PE 48 ORE CU PAS DE 5 MIN
+# 48-HOUR SCENARIO WITH A 5-MINUTE TIME STEP
 # =========================================================
 
-# Pasul de simulare (ore)
+# Simulation time step (hours)
 dt = 1/12
 
-T = int(48 / dt) # 48 ore cu pas dt
+T = int(48 / dt)  # 48 hours with time step dt
 
 ore = np.arange(1, T + 1)
 
@@ -56,7 +56,7 @@ ore_base = np.arange(48)
 ore_interp = ore * dt
 
 # =========================================================
-# INTERPOLARE DATE
+# DATA INTERPOLATION
 # =========================================================
 
 f_pret = interp1d(ore_base, pret_ora, kind='linear', fill_value="extrapolate")
@@ -67,133 +67,133 @@ C = f_pret(ore_interp)
 D = f_cons(ore_interp)
 P_regen = f_ren(ore_interp)
 
-# Pretul de vanzare a surplusului, redus fata de cumparare
+# Surplus electricity selling price, reduced relative to the purchase price
 C_vanzare = 0.9 * C
 
 # =========================================================
-# MODEL SISTEM MANAGEMENT ENERGETIC
+# ENERGY MANAGEMENT SYSTEM MODEL
 # =========================================================
 
 model = gp.Model("SME_2_zile")
 
 # =========================================================
-# PARAMETRI DINAMICI
+# DYNAMIC PARAMETERS
 # =========================================================
 
-# Nuclear : raspuns lent (tau = 30 min)
+# Nuclear power: slow response (tau = 30 min)
 alpha_nuc = np.exp(-dt / (1/2))
 
-# Hidro : raspuns rapid (tau = 10 min)
+# Hydropower: fast response (tau = 10 min)
 alpha_hid = np.exp(-dt / (1/6))
 
-# Constante pentru cost operational hidro si nuclear (per MWh produs)
-c_nuc = 150 
-c_hid = 50 
+# Nuclear and hydropower operating costs (per MWh generated)
+c_nuc = 150
+c_hid = 50
 
-# Constante pentru costurile tranzitie ale comenzilor pe nuclear si hidro
+# Cost coefficients penalizing changes in nuclear and hydropower setpoints
 c_delta_nuc = 1000
 c_delta_hid = 300
 
-# Limita energetica pentru hidro pe 48h (sursa de apa este limitata)
-E_hid_max = 100000 # maxim 2083MW constant pe 48h
+# Maximum total hydropower energy over the 48-hour horizon (limited water supply)
+E_hid_max = 100000  # Equivalent to a constant output of approximately 2083 MW over 48 hours
 
-# Pierderi de incarcare/descarcare baterie
+# Battery charging and discharging efficiencies
 beta_inc = 0.95
 beta_des = 0.95
 
-# Constanta pentru cost degradare baterie si limita de variatie a puterii incarcate/descarcate
+# Battery degradation cost and charging/discharging power variation limit
 c_bat = 1
-R_bat = 300 * dt # limita de variatie de 300 MW / h
+R_bat = 300 * dt  # Power variation limit corresponding to 300 MW/h
 
-# Self-discharge baterie (0.003% pe ora)
+# Battery self-discharge rate (0.003% per hour)
 self_dis = 0.00003
 
 # =========================================================
-# VARIABILE
+# DECISION VARIABLES
 # =========================================================
 
-# Setpoint-uri
+# Setpoints
 u_nuc = model.addVars(T, lb=900, ub=1800, name="u_nuc")
 u_hid = model.addVars(T, lb=250, ub=2500, name="u_hid")
 
-# Puteri generate de hidro si nuclear
+# Nuclear and hydropower output
 P_nuc = model.addVars(T, lb=900, ub=1800, name="P_nuc")
 P_hid = model.addVars(T, lb=250, ub=2500, name="P_hid")
 
-# Variabile pentru penalizarea schimbarilor rapide a comenzilor (nuclear + hidro)
+# Variables penalizing rapid changes in nuclear and hydropower setpoints
 delta_nuc = model.addVars(T, lb=0, name="delta_nuc")
 delta_hid = model.addVars(T, lb=0, name="delta_hid")
 
-# Baterie
+# Battery
 P_inc = model.addVars(T, lb=0, ub=500, name="P_inc")
-P_des = model.addVars(T, lb=0, ub=500, name="P_des") # limite de incarcare/descarcare de 500MW
+P_des = model.addVars(T, lb=0, ub=500, name="P_des")  # Maximum charging/discharging power: 500 MW
 
-# Bateria nu se poate incarca si descarca simultan
-# 1 : incarcare
-# 0 : descarcare
+# The battery cannot charge and discharge simultaneously
+# 1: charging
+# 0: discharging
 
 stare_baterie = model.addVars(T, vtype=GRB.BINARY, name="stare_baterie")
 
 SoC = model.addVars(T + 1, lb=100, ub=2500, name="SoC")
 
-# Import si export retea
+# Grid imports and exports
 P_import = model.addVars(T, lb=0, name="P_import")
 P_export = model.addVars(T, lb=0, name="P_export")
 
-# Nu se poate importa si exporta simultan
+# The grid cannot import and export electricity simultaneously
 stare_retea = model.addVars(T, vtype=GRB.BINARY, name="stare_retea")
 
 # =========================================================
-# CONDITII INITIALE
+# INITIAL CONDITIONS
 # =========================================================
 
-# Nuclear initial
+# Initial nuclear power output
 model.addConstr(P_nuc[0] == 1300)
 
-# Hidro initial
+# Initial hydropower output
 model.addConstr(P_hid[0] == 1200)
 
-# Baterie initiala
+# Initial battery state of charge
 model.addConstr(SoC[0] == 500)
 
 # =========================================================
-# DINAMICA SISTEMULUI
+# SYSTEM DYNAMICS
 # =========================================================
 
 for t in range(T - 1):
 
     # =====================================================
-    # DINAMICA NUCLEAR
+    # NUCLEAR POWER DYNAMICS
     # =====================================================
 
-    # Raspuns lent
-    
+    # Slow response
+
     model.addConstr(P_nuc[t + 1] == alpha_nuc * P_nuc[t] + (1 - alpha_nuc) * u_nuc[t])
 
     model.addConstr(delta_nuc[t] >= u_nuc[t+1] - u_nuc[t])
     model.addConstr(delta_nuc[t] >= u_nuc[t] - u_nuc[t+1])
 
     # =====================================================
-    # DINAMICA HIDRO
+    # HYDROPOWER DYNAMICS
     # =====================================================
-    
-    # Raspuns rapid
-    
+
+    # Fast response
+
     model.addConstr(P_hid[t + 1] == alpha_hid * P_hid[t] + (1 - alpha_hid) * u_hid[t])
 
     model.addConstr(delta_hid[t] >= u_hid[t+1] - u_hid[t])
     model.addConstr(delta_hid[t] >= u_hid[t] - u_hid[t+1])
 
-# Limita de energie totala produsa de hidro pe orizontul de simulare
+# Maximum total hydropower energy over the simulation horizon
 model.addConstr(gp.quicksum(P_hid[t] * dt for t in range(T)) <= E_hid_max)
 
 # =========================================================
-# DINAMICA BATERIE
+# BATTERY DYNAMICS
 # =========================================================
 
 for t in range(T):
-    
-    # Bateria ori descarca, ori incarca
+
+    # The battery can either charge or discharge
     model.addConstr(P_inc[t] <= 500 * stare_baterie[t])
     model.addConstr(P_des[t] <= 500 * (1 - stare_baterie[t]))
 
@@ -201,18 +201,18 @@ for t in range(T):
 
 for t in range(T - 1):
 
-    # Limita pe variatia puterii de incarcare/descarcare
+    # Limit on charging/discharging power variations
     model.addConstr(P_inc[t+1] - P_inc[t] <= R_bat)
     model.addConstr(P_inc[t] - P_inc[t+1] <= R_bat)
 
     model.addConstr(P_des[t+1] - P_des[t] <= R_bat)
     model.addConstr(P_des[t] - P_des[t+1] <= R_bat)
 
-# SoC final
+# Final battery state of charge
 model.addConstr(SoC[T] >= SoC[0])
 
 # =========================================================
-# BALANTA ENERGETICA
+# ENERGY BALANCE
 # =========================================================
 
 for t in range(T):
@@ -220,40 +220,40 @@ for t in range(T):
     model.addConstr(P_nuc[t] + P_hid[t] + P_regen[t] + P_des[t] + P_import[t] == D[t] + P_inc[t] + P_export[t])
 
     # =====================================================
-    # DINAMICA RETEA
+    # GRID IMPORT/EXPORT CONSTRAINTS
     # =====================================================
 
     model.addConstr(P_import[t] <= 10000 * stare_retea[t])
     model.addConstr(P_export[t] <= 10000 * (1 - stare_retea[t]))
 
 # =========================================================
-# FUNCTIA COST
+# OBJECTIVE FUNCTION
 # =========================================================
 #
-# Minimizare import energie din retea si cost operational de productie:
+# Minimize grid electricity import costs and generation operating costs:
 #
-# J = sum( total_import + cost_nuclear + cost_hidro + cost_baterie - total_export )
+# J = sum(total import cost + nuclear cost + hydropower cost
+#         + battery cost - total export revenue)
 #
-# Astfel, ar trebui sa observam ca:
-# - sistemul foloseste prioritar sursele proprii
-# - bateria se descarca la ore scumpe
-# - importul este minimizat
+# The expected outcomes are:
+# - The system prioritizes its own generation sources
+# - The battery discharges during periods of high electricity prices
+# - Grid imports are minimized
 
-cost_total = gp.quicksum(dt * (C[t] * P_import[t] + c_nuc * P_nuc[t] + c_hid * P_hid[t] + c_bat * (P_inc[t] + P_des[t]) 
+cost_total = gp.quicksum(dt * (C[t] * P_import[t] + c_nuc * P_nuc[t] + c_hid * P_hid[t] + c_bat * (P_inc[t] + P_des[t])
                                - C_vanzare[t] * P_export[t]) + c_delta_nuc * delta_nuc[t] + c_delta_hid * delta_hid[t] for t in range(T))
-
 
 model.setObjective(cost_total, GRB.MINIMIZE)
 
 # =========================================================
-# OPTIMIZARE
+# OPTIMIZATION
 # =========================================================
 
 model.setParam("Presolve", 0)
 model.optimize()
 
 # =====================================================
-# AFISARE CONSOLA
+# CONSOLE OUTPUT
 # =====================================================
 
 total_import = sum(P_import[t].X * dt for t in range(T))
@@ -263,21 +263,21 @@ E_inc = sum(P_inc[t].X * dt for t in range(T))
 E_des = sum(P_des[t].X * dt for t in range(T))
 
 print("\n===================================")
-print(f"Import total:        {total_import:,.2f} MWh")
-print(f"Export total:        {total_export:,.2f} MWh")
-print(f"Utilizare baterie:   {utilizare_baterie:,.2f} MWh \n({E_inc:,.2f} MWh incarcati + {E_des:,.2f} MWh descarcati)")
-print(f"\nCost total: {model.objVal:,.2f} lei")
+print(f"Total imports:        {total_import:,.2f} MWh")
+print(f"Total exports:        {total_export:,.2f} MWh")
+print(f"Battery throughput:   {utilizare_baterie:,.2f} MWh \n({E_inc:,.2f} MWh charged + {E_des:,.2f} MWh discharged)")
+print(f"\nTotal cost: {model.objVal:,.2f} RON")
 print("===================================")
 
 # =========================================================
-# VIZUALIZARE
+# VISUALIZATION
 # =========================================================
 
 if model.status == GRB.OPTIMAL:
 
     fig, axes = plt.subplots(4, 1, figsize=(15, 12))
 
-    # Gradatii
+    # X-axis tick positions
     ore_gradatii = [1/dt, 6/dt, 12/dt, 18/dt, 24/dt, 30/dt, 36/dt, 42/dt, 48/dt]
     etichete = ['1', '6', '12', '18', '24', '6', '12', '18', '24']
 
@@ -288,46 +288,46 @@ if model.status == GRB.OPTIMAL:
         ax.grid(True, linestyle='--', alpha=0.6)
 
     # =====================================================
-    # GRAFIC CONSUM VS PRODUCTIE
+    # CONSUMPTION VS. GENERATION PLOT
     # =====================================================
 
     productie_totala = [P_nuc[t].X + P_hid[t].X + P_regen[t] for t in range(T)]
 
-    # Curba consum
-    axes[0].plot(ore, D, color='red', linewidth=2, label='Consum')
+    # Consumption curve
+    axes[0].plot(ore, D, color='red', linewidth=2, label='Consumption')
 
-    # Umplere consum
+    # Fill area under the consumption curve
     axes[0].fill_between(ore, D, color='red', alpha=0.3)
 
-    # Curba productie
-    axes[0].plot(ore, productie_totala, color='blue', linewidth=2, label='Productie')
+    # Generation curve
+    axes[0].plot(ore, productie_totala, color='blue', linewidth=2, label='Generation')
 
-    # Umplere productie
+    # Fill area under the generation curve
     axes[0].fill_between(ore, productie_totala, color='blue', alpha=0.3)
 
-    axes[0].set_title("Consum vs Productie", fontsize=11, fontweight='bold')
+    axes[0].set_title("Consumption vs. Generation", fontsize=11, fontweight='bold')
 
-    axes[0].set_ylabel("Putere [MW]")
+    axes[0].set_ylabel("Power [MW]")
     axes[0].legend(framealpha=0.65)
 
     # =====================================================
-    # GRAFIC DINAMICA SURSE
+    # POWER SOURCE DYNAMICS PLOT
     # =====================================================
 
     axes[1].plot(ore, [P_nuc[t].X for t in range(T)], label='Nuclear', linewidth=2)
 
-    axes[1].plot(ore, [P_hid[t].X for t in range(T)], label='Hidro', linewidth=2)
+    axes[1].plot(ore, [P_hid[t].X for t in range(T)], label='Hydropower', linewidth=2)
 
-    axes[1].plot(ore, P_regen, label='PV + Eolian', linewidth=2)
+    axes[1].plot(ore, P_regen, label='PV + Wind', linewidth=2)
 
-    axes[1].set_title("Dinamica Surselor de Energie", fontsize=11, fontweight='bold')
+    axes[1].set_title("Power Source Dynamics", fontsize=11, fontweight='bold')
 
-    axes[1].set_ylabel("Putere [MW]")
+    axes[1].set_ylabel("Power [MW]")
     axes[1].legend(framealpha=0.65)
 
     # =====================================================
-    # GRAFIC SoC BATERIE
-    # =====================================================   
+    # BATTERY STATE OF CHARGE (SoC) PLOT
+    # =====================================================
 
     axes[2].plot(np.arange(0, T + 1), [SoC[t].X for t in range(T + 1)], color='purple', linewidth=2)
 
@@ -340,19 +340,19 @@ if model.status == GRB.OPTIMAL:
         else:
             axes[2].axvspan(t, t+1, color='lightgray', alpha=0.25)
 
-    axes[2].set_title("State of Charge Baterie", fontsize=11, fontweight='bold')
+    axes[2].set_title("Battery State of Charge", fontsize=11, fontweight='bold')
 
-    axes[2].set_ylabel("Energie [MWh]")
+    axes[2].set_ylabel("Energy [MWh]")
 
     legenda = [
-    mpatches.Patch(color='lightgreen', alpha=0.3, label='Incarcare'),
-    mpatches.Patch(color='lightcoral', alpha=0.3, label='Descarcare'),
+    mpatches.Patch(color='lightgreen', alpha=0.3, label='Charging'),
+    mpatches.Patch(color='lightcoral', alpha=0.3, label='Discharging'),
     mpatches.Patch(color='purple', label='SoC')]
 
     axes[2].legend(handles=legenda, loc='upper left', framealpha=0.65)
 
     # =====================================================
-    # GRAFIC IMPORT / EXPORT + PRET
+    # GRID IMPORT/EXPORT AND ELECTRICITY PRICE PLOT
     # =====================================================
 
     cost_import = [(C[t] * P_import[t].X * dt) / 1000 for t in range(T)]
@@ -361,30 +361,31 @@ if model.status == GRB.OPTIMAL:
 
     ax1 = axes[3]
 
-    ax1.bar(ore, cost_import, color='darkred', alpha=0.7, label='Import')
-    ax1.bar(ore, profit_export, color='darkgreen', alpha=0.7, label='Export')
+    ax1.bar(ore, cost_import, color='darkred', alpha=0.7, label='Imports')
+    ax1.bar(ore, profit_export, color='darkgreen', alpha=0.7, label='Exports')
 
     ax1.axhline(0, color='black', linewidth=1)
 
-    ax1.set_ylabel("Cost [mii lei]")
+    ax1.set_ylabel("Cost [thousand RON]")
 
-    ax1.set_title("Import / Export Energie si Pret MWh", fontsize=11, fontweight='bold')
+    ax1.set_title("Energy Imports/Exports and Electricity Prices", fontsize=11, fontweight='bold')
 
-    # A doua axa (pret)
+    # Secondary axis for electricity price
     ax2 = ax1.twinx()
 
-    ax2.plot(ore, C, color='darkorange', linewidth=2, label='Pret Energie')
+    ax2.plot(ore, C, color='darkorange', linewidth=2, label='Electricity Price')
 
-    ax2.set_ylabel("Pret [lei/MWh]")
+    ax2.set_ylabel("Price [RON/MWh]")
     ax2.set_ylim(bottom=0)
 
-    # Legenda
+    # Combined legend
     lines1, labels1 = ax1.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
 
     fig.legend(lines1 + lines2, labels1 + labels2, loc='upper left', bbox_to_anchor=(0.0525, 0.237), frameon=True, framealpha=0.65)
 
-    ax1.set_xlabel("Ora", labelpad=-1)
-    
+    ax1.set_xlabel("Hour", labelpad=-1)
+
     plt.tight_layout()
     plt.show()
+```

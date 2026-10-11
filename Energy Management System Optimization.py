@@ -6,7 +6,7 @@ import matplotlib.patches as mpatches
 from scipy.interpolate import interp1d
 
 # =========================================================
-# 1. DATE REALE TRANSELECTRICA + OPCOM
+# DATE REALE TRANSELECTRICA + OPCOM
 # =========================================================
 
 pret_ora = np.array([
@@ -42,7 +42,7 @@ foto_ora = np.tile(foto_ora, 2)
 eolian_ora = np.tile(eolian_ora, 2)
 
 # =========================================================
-# 2. SCENARIU PE 48 ORE CU PAS DE 5 MIN
+# SCENARIU PE 48 ORE CU PAS DE 5 MIN
 # =========================================================
 
 # Pasul de simulare (ore)
@@ -71,20 +71,14 @@ P_regen = f_ren(ore_interp)
 C_vanzare = 0.9 * C
 
 # =========================================================
-# 3. MODEL SISTEM MANAGEMENT ENERGETIC
+# MODEL SISTEM MANAGEMENT ENERGETIC
 # =========================================================
 
 model = gp.Model("SME_2_zile")
 
 # =========================================================
-# 4. PARAMETRI DINAMICI
+# PARAMETRI DINAMICI
 # =========================================================
-
-# Functia de transfer de ordin I, discretizata prin ZOH:
-#
-# P(t+1) = alpha * P(t) + (1-alpha) * u(t)
-#
-# unde alpha = e^(-dt / tau)
 
 # Nuclear : raspuns lent (tau = 30 min)
 alpha_nuc = np.exp(-dt / (1/2))
@@ -115,7 +109,7 @@ R_bat = 300 * dt # limita de variatie de 300 MW / h
 self_dis = 0.00003
 
 # =========================================================
-# 5. VARIABILE
+# VARIABILE
 # =========================================================
 
 # Setpoint-uri
@@ -127,9 +121,6 @@ P_nuc = model.addVars(T, lb=900, ub=1800, name="P_nuc")
 P_hid = model.addVars(T, lb=250, ub=2500, name="P_hid")
 
 # Variabile pentru penalizarea schimbarilor rapide a comenzilor (nuclear + hidro)
-# delta_nuc(t) = |u_nuc(t+1) - u_nuc(t)|
-# delta_hid(t) = |u_hid(t+1) - u_hid(t)|
-
 delta_nuc = model.addVars(T, lb=0, name="delta_nuc")
 delta_hid = model.addVars(T, lb=0, name="delta_hid")
 
@@ -153,7 +144,7 @@ P_export = model.addVars(T, lb=0, name="P_export")
 stare_retea = model.addVars(T, vtype=GRB.BINARY, name="stare_retea")
 
 # =========================================================
-# 6. CONDITII INITIALE
+# CONDITII INITIALE
 # =========================================================
 
 # Nuclear initial
@@ -166,7 +157,7 @@ model.addConstr(P_hid[0] == 1200)
 model.addConstr(SoC[0] == 500)
 
 # =========================================================
-# 7. DINAMICA SISTEMULUI
+# DINAMICA SISTEMULUI
 # =========================================================
 
 for t in range(T - 1):
@@ -174,9 +165,7 @@ for t in range(T - 1):
     # =====================================================
     # DINAMICA NUCLEAR
     # =====================================================
-    #
-    # Functie de transfer ordin 1: P_nuc(t+1) = alpha_nuc * P_nuc(t) + (1-alpha_nuc) * u_nuc(t)
-    #
+
     # Raspuns lent
     
     model.addConstr(P_nuc[t + 1] == alpha_nuc * P_nuc[t] + (1 - alpha_nuc) * u_nuc[t])
@@ -187,9 +176,7 @@ for t in range(T - 1):
     # =====================================================
     # DINAMICA HIDRO
     # =====================================================
-    #
-    # Functie de transfer ordin 1: P_hid(t+1) = alpha_hid * P_hid(t) + (1-alpha_hid) * u_hid(t)
-    #
+    
     # Raspuns rapid
     
     model.addConstr(P_hid[t + 1] == alpha_hid * P_hid[t] + (1 - alpha_hid) * u_hid[t])
@@ -201,7 +188,7 @@ for t in range(T - 1):
 model.addConstr(gp.quicksum(P_hid[t] * dt for t in range(T)) <= E_hid_max)
 
 # =========================================================
-# 8. DINAMICA BATERIE
+# DINAMICA BATERIE
 # =========================================================
 
 for t in range(T):
@@ -225,7 +212,7 @@ for t in range(T - 1):
 model.addConstr(SoC[T] >= SoC[0])
 
 # =========================================================
-# 9. BALANTA ENERGETICA
+# BALANTA ENERGETICA
 # =========================================================
 
 for t in range(T):
@@ -240,7 +227,7 @@ for t in range(T):
     model.addConstr(P_export[t] <= 10000 * (1 - stare_retea[t]))
 
 # =========================================================
-# 10. FUNCTIA COST
+# FUNCTIA COST
 # =========================================================
 #
 # Minimizare import energie din retea si cost operational de productie:
@@ -259,7 +246,7 @@ cost_total = gp.quicksum(dt * (C[t] * P_import[t] + c_nuc * P_nuc[t] + c_hid * P
 model.setObjective(cost_total, GRB.MINIMIZE)
 
 # =========================================================
-# 11. OPTIMIZARE
+# OPTIMIZARE
 # =========================================================
 
 model.setParam("Presolve", 0)
@@ -283,7 +270,7 @@ print(f"\nCost total: {model.objVal:,.2f} lei")
 print("===================================")
 
 # =========================================================
-# 12. VIZUALIZARE
+# VIZUALIZARE
 # =========================================================
 
 if model.status == GRB.OPTIMAL:
@@ -301,7 +288,7 @@ if model.status == GRB.OPTIMAL:
         ax.grid(True, linestyle='--', alpha=0.6)
 
     # =====================================================
-    # GRAFIC 1 - CONSUM VS PRODUCTIE
+    # GRAFIC CONSUM VS PRODUCTIE
     # =====================================================
 
     productie_totala = [P_nuc[t].X + P_hid[t].X + P_regen[t] for t in range(T)]
@@ -324,7 +311,7 @@ if model.status == GRB.OPTIMAL:
     axes[0].legend(framealpha=0.65)
 
     # =====================================================
-    # GRAFIC 2 - DINAMICA SURSE
+    # GRAFIC DINAMICA SURSE
     # =====================================================
 
     axes[1].plot(ore, [P_nuc[t].X for t in range(T)], label='Nuclear', linewidth=2)
@@ -339,17 +326,15 @@ if model.status == GRB.OPTIMAL:
     axes[1].legend(framealpha=0.65)
 
     # =====================================================
-    # GRAFIC 3 - SoC BATERIE
+    # GRAFIC SoC BATERIE
     # =====================================================   
 
     axes[2].plot(np.arange(0, T + 1), [SoC[t].X for t in range(T + 1)], color='purple', linewidth=2)
 
     for t in range(T):
-        # incarcarea reprezentata pe fundal verde
         if P_inc[t].X > 1e-3:
             axes[2].axvspan(t, t+1, color='lightgreen', alpha=0.25)
 
-        # descarcarea reprezentata pe fundal rosu
         if P_des[t].X > 1e-3:
             axes[2].axvspan(t, t+1, color='lightcoral', alpha=0.25)
         else:
@@ -367,13 +352,11 @@ if model.status == GRB.OPTIMAL:
     axes[2].legend(handles=legenda, loc='upper left', framealpha=0.65)
 
     # =====================================================
-    # GRAFIC 4 - IMPORT / EXPORT + PRET
+    # GRAFIC IMPORT / EXPORT + PRET
     # =====================================================
 
-    # Cost import pozitiv
     cost_import = [(C[t] * P_import[t].X * dt) / 1000 for t in range(T)]
 
-    # Profit export negativ
     profit_export = [-(C_vanzare[t] * P_export[t].X * dt) / 1000 for t in range(T)]
 
     ax1 = axes[3]

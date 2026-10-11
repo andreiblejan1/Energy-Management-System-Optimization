@@ -388,4 +388,3 @@ if model.status == GRB.OPTIMAL:
 
     plt.tight_layout()
     plt.show()
-```
